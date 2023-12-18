@@ -17,18 +17,24 @@ fn usage() {
 fn calc_filled(vertices: &Vec<Position>) -> i64 {
     let mut area: i64 = 0;
     let mut perimeter: i64 = 0;
+
+    // Shoelace formula
     for i in 0..(vertices.len() - 1) {
         let mut window = vertices[i..=(i + 1)].iter();
         let first = window.next().unwrap();
         let second = window.next().unwrap();
         area += (first.0 * second.1) - (first.1 * second.0);
-        if first.0 == second.0 {
-            perimeter += i64::abs(first.1 - second.1);
-        } else if first.1 == second.1 {
-            perimeter += i64::abs(first.0 - second.0);
-        }
+        perimeter += f64::abs(f64::sqrt(
+            ((second.0 - first.0) * (second.0 - first.0)) as f64
+                + ((second.1 - first.1) * (second.1 - first.1)) as f64,
+        )) as i64;
     }
-    ((i64::abs(area) / 2) - (perimeter / 2) + 1) + perimeter
+    let area: i64 = i64::abs(area) / 2;
+
+    // Pick's theorem
+    let interior: i64 = area - (perimeter / 2) + 1;
+
+    interior + perimeter
 }
 
 fn process(contents: &str) -> i64 {
