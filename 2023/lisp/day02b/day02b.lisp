@@ -1,0 +1,60 @@
+#!/usr/bin/env clisp
+
+(setf *progname* "day02b.lisp")
+
+(load "~/quicklisp/setup.lisp")
+(ql:quickload "split-sequence")
+
+(defun prog-usage ()
+  (format t "usage: ~a <file>" *progname*)
+  (exit))
+
+(defun read-file-into-lines (filename)
+  (with-open-file (file filename :direction :input)
+    (setf lines
+      (loop for line = (read-line file nil)
+          while line
+          collect line))
+    (close file))
+  lines)
+
+(defun process (filename)
+  (setf result 0)
+  (setf lines (read-file-into-lines filename))
+  (dolist (line lines)
+    (setf max-red nil)
+    (setf max-green nil)
+    (setf max-blue nil)
+    (setf game-part (car (split-sequence:split-sequence #\: line)))
+    (setf draws-part (cadr (split-sequence:split-sequence #\: line)))
+    (setf draws (split-sequence:split-sequence #\; draws-part))
+    (dolist (draw draws)
+      (setf color-amounts (split-sequence:split-sequence #\, draw))
+      (dolist (color-amount-part color-amounts)
+        (setf color-amount
+          (split-sequence:split-sequence #\Space (string-trim " " color-amount-part)))
+        (setf amount (parse-integer (car color-amount)))
+        (setf color (cadr color-amount))
+        (cond ((string= color "red")
+                (if (or (null max-red)
+                        (> amount max-red))
+                    (setf max-red amount)))
+              ((string= color "green")
+                (if (or (null max-green)
+                        (> amount max-green))
+                    (setf max-green amount)))
+              ((string= color "blue")
+                (if (or (null max-blue)
+                        (> amount max-blue))
+                    (setf max-blue amount))))))
+    (setf result (+ result (* max-red max-green max-blue))))
+  result)
+
+(defun main ()
+  (if (< (length *args*) 1)
+    (prog-usage))
+  (setf filename (car *args*))
+  (setf result (process filename))
+  (format t "result = ~d" result))
+
+(main)
