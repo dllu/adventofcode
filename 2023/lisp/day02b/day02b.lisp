@@ -2,9 +2,6 @@
 
 (setf *progname* "day02b.lisp")
 
-(load "~/quicklisp/setup.lisp")
-(ql:quickload "split-sequence")
-
 (defun prog-usage ()
   (format t "usage: ~a <file>" *progname*)
   (exit))
@@ -18,6 +15,17 @@
     (close file))
   lines)
 
+(defun split-string (delimiter str)
+  (loop with start = 0
+        with end = (position delimiter str)
+        with result = '()
+        while end do
+          (push (subseq str start end) result)
+          (setf start (1+ end)
+                end (position delimiter str :start start))
+        finally (push (subseq str start) result)
+        finally (return (nreverse result))))
+
 (defun process (filename)
   (setf result 0)
   (setf lines (read-file-into-lines filename))
@@ -25,14 +33,14 @@
     (setf max-red nil)
     (setf max-green nil)
     (setf max-blue nil)
-    (setf game-part (car (split-sequence:split-sequence #\: line)))
-    (setf draws-part (cadr (split-sequence:split-sequence #\: line)))
-    (setf draws (split-sequence:split-sequence #\; draws-part))
+    (setf game-part (car (split-string #\: line)))
+    (setf draws-part (cadr (split-string #\: line)))
+    (setf draws (split-string #\; draws-part))
     (dolist (draw draws)
-      (setf color-amounts (split-sequence:split-sequence #\, draw))
+      (setf color-amounts (split-string #\, draw))
       (dolist (color-amount-part color-amounts)
         (setf color-amount
-          (split-sequence:split-sequence #\Space (string-trim " " color-amount-part)))
+          (split-string #\Space (string-trim " " color-amount-part)))
         (setf amount (parse-integer (car color-amount)))
         (setf color (cadr color-amount))
         (cond ((string= color "red")
