@@ -20,16 +20,15 @@ fn calc_filled(vertices: &Vec<Position>) -> i64 {
 
     // Shoelace formula
     for i in 0..(vertices.len() - 1) {
-        let mut window = vertices[i..=(i + 1)].iter();
-        let first = window.next().unwrap();
-        let second = window.next().unwrap();
+        let first = vertices[i];
+        let second = vertices[i + 1];
         area += (first.0 * second.1) - (first.1 * second.0);
         perimeter += f64::abs(f64::sqrt(
             ((second.0 - first.0) * (second.0 - first.0)) as f64
                 + ((second.1 - first.1) * (second.1 - first.1)) as f64,
         )) as i64;
     }
-    let area: i64 = i64::abs(area) / 2;
+    area = i64::abs(area) / 2;
 
     // Pick's theorem
     let interior: i64 = area - (perimeter / 2) + 1;
