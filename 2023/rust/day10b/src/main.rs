@@ -1,10 +1,9 @@
-use std::collections::{HashMap, HashSet, VecDeque};
 use std::env;
 use std::fs;
 use std::process;
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-struct Position(u32, u32);
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct Position(i32, i32);
 
 fn usage() {
     let progname = env::args().next().unwrap();
@@ -12,142 +11,123 @@ fn usage() {
     process::exit(1);
 }
 
-fn build_grid(contents: &str) -> (HashMap<Position, char>, Position) {
-    let mut grid: HashMap<Position, char> = HashMap::new();
+fn build_grid(contents: &str) -> (Vec<Vec<char>>, Position) {
+    let mut grid: Vec<Vec<char>> = vec![];
     let mut start: Position = Position(0, 0);
     for (row, line) in contents.lines().enumerate() {
+        grid.push(vec![]);
         for (col, ch) in line.chars().enumerate() {
-            grid.insert(Position(row as u32, col as u32), ch);
+            grid[row].push(ch);
             if ch == 'S' {
-                start = Position(row as u32, col as u32);
+                start = Position(row as i32, col as i32);
             }
         }
     }
     (grid, start)
 }
 
-fn build_loop(
-    grid: &HashMap<Position, char>,
-    start: &Position,
-) -> (HashSet<Position>, HashMap<Position, char>) {
-    let mut q: VecDeque<Position> = VecDeque::new();
-    let mut pipe_loop: HashSet<Position> = HashSet::new();
-    let mut possibles: HashSet<char> = HashSet::from(['|', '-', 'L', 'J', '7', 'F']);
-    let max_row = grid.keys().map(|k| k.0).max().unwrap();
-    let max_col = grid.keys().map(|k| k.1).max().unwrap();
-    q.push_back(*start);
-    while !q.is_empty() {
-        let pos = q.pop_front().unwrap();
-        pipe_loop.insert(pos);
-        let pipe = grid.get(&pos).unwrap();
-        if pos.0 > 0 && ['S', '|', 'L', 'J'].contains(pipe) {
-            let north = Position(pos.0 - 1, pos.1);
-            let north_pipe = grid.get(&north).unwrap();
-            if ['|', '7', 'F'].contains(north_pipe) && !pipe_loop.contains(&north) {
-                q.push_back(north);
-                if *pipe == 'S' {
-                    possibles = possibles
-                        .intersection(&HashSet::from(['|', 'L', 'J']))
-                        .cloned()
-                        .collect();
-                }
-            }
-        }
-        if pos.0 < max_row && ['S', '|', '7', 'F'].contains(pipe) {
-            let south = Position(pos.0 + 1, pos.1);
-            let south_pipe = grid.get(&south).unwrap();
-            if ['|', 'L', 'J'].contains(south_pipe) && !pipe_loop.contains(&south) {
-                q.push_back(south);
-                if *pipe == 'S' {
-                    possibles = possibles
-                        .intersection(&HashSet::from(['|', '7', 'F']))
-                        .cloned()
-                        .collect();
-                }
-            }
-        }
-        if pos.1 > 0 && ['S', '-', '7', 'J'].contains(pipe) {
-            let west = Position(pos.0, pos.1 - 1);
-            let west_pipe = grid.get(&west).unwrap();
-            if ['-', 'L', 'F'].contains(west_pipe) && !pipe_loop.contains(&west) {
-                q.push_back(west);
-                if *pipe == 'S' {
-                    possibles = possibles
-                        .intersection(&HashSet::from(['-', '7', 'J']))
-                        .cloned()
-                        .collect();
-                }
-            }
-        }
-        if pos.1 < max_col && ['S', '-', 'L', 'F'].contains(pipe) {
-            let east = Position(pos.0, pos.1 + 1);
-            let east_pipe = grid.get(&east).unwrap();
-            if ['-', 'J', '7'].contains(east_pipe) && !pipe_loop.contains(&east) {
-                q.push_back(east);
-                if *pipe == 'S' {
-                    possibles = possibles
-                        .intersection(&HashSet::from(['-', 'L', 'F']))
-                        .cloned()
-                        .collect();
-                }
-            }
-        }
-    }
-    let start_pipe = possibles.iter().next().unwrap();
-    let mut new_grid = grid.clone();
-    new_grid.insert(*start, *start_pipe);
-    (pipe_loop, new_grid)
+fn in_bounds(pos: &Position, max_extent: &Position) -> bool {
+    pos.0 >= 0 && pos.0 < max_extent.0 && pos.1 >= 0 && pos.1 < max_extent.1
 }
 
-fn count_interior(pipe_loop: &HashSet<Position>, grid: &HashMap<Position, char>) -> u32 {
-    let mut count: u32 = 0;
-    let mut new_grid: HashMap<Position, char> = HashMap::new();
-    let max_row = grid.keys().map(|p| p.0).max().unwrap();
-    let max_col = grid.keys().map(|p| p.1).max().unwrap();
-    for pos in grid.keys() {
-        if !pipe_loop.contains(pos) {
-            new_grid.insert(*pos, '.');
-        } else {
-            let pipe = grid.get(pos).unwrap();
-            new_grid.insert(*pos, *pipe);
-        }
+fn connected(pos: &Position, next: &Position, grid: &[Vec<char>]) -> bool {
+    let delta: Position = Position(next.0 - pos.0, next.1 - pos.1);
+    let pos_ch: char = grid[pos.0 as usize][pos.1 as usize];
+    let next_ch: char = grid[next.0 as usize][next.1 as usize];
+    match pos_ch {
+        'S' => match delta {
+            Position(1, 0) => ['J', '|', 'L'].contains(&next_ch),
+            Position(-1, 0) => ['7', '|', 'F'].contains(&next_ch),
+            Position(0, 1) => ['J', '-', '7'].contains(&next_ch),
+            Position(0, -1) => ['L', '-', 'F'].contains(&next_ch),
+            _ => false,
+        },
+        '|' => match delta {
+            Position(1, 0) => ['J', '|', 'L'].contains(&next_ch),
+            Position(-1, 0) => ['7', '|', 'F'].contains(&next_ch),
+            _ => false,
+        },
+        '-' => match delta {
+            Position(0, 1) => ['J', '-', '7'].contains(&next_ch),
+            Position(0, -1) => ['L', '-', 'F'].contains(&next_ch),
+            _ => false,
+        },
+        'L' => match delta {
+            Position(-1, 0) => ['7', '|', 'F'].contains(&next_ch),
+            Position(0, 1) => ['J', '-', '7'].contains(&next_ch),
+            _ => false,
+        },
+        'J' => match delta {
+            Position(-1, 0) => ['7', '|', 'F'].contains(&next_ch),
+            Position(0, -1) => ['L', '-', 'F'].contains(&next_ch),
+            _ => false,
+        },
+        '7' => match delta {
+            Position(1, 0) => ['J', '|', 'L'].contains(&next_ch),
+            Position(0, -1) => ['L', '-', 'F'].contains(&next_ch),
+            _ => false,
+        },
+        'F' => match delta {
+            Position(1, 0) => ['J', '|', 'L'].contains(&next_ch),
+            Position(0, 1) => ['J', '-', '7'].contains(&next_ch),
+            _ => false,
+        },
+        _ => false,
     }
-    for row in 0..=max_row {
-        for col in 0..=max_col {
-            let pos = Position(row, col);
-            let pipe = new_grid.get(&pos).unwrap();
-            if *pipe != '.' {
-                continue;
-            }
-            let mut intersections: u32 = 0;
-            let mut corner_pipes: VecDeque<char> = VecDeque::new();
-            for i in (col + 1)..=max_col {
-                let scan_pos = Position(row, i);
-                let scan_pipe = new_grid.get(&scan_pos).unwrap();
-                if *scan_pipe == '|' {
-                    intersections += 1;
-                } else if ['F', 'L'].contains(scan_pipe) {
-                    corner_pipes.push_back(*scan_pipe);
-                } else if !corner_pipes.is_empty()
-                    && ((*scan_pipe == 'J' && *corner_pipes.iter().last().unwrap() == 'F')
-                        || (*scan_pipe == '7' && *corner_pipes.iter().last().unwrap() == 'L'))
-                {
-                    let _ = corner_pipes.pop_back().unwrap();
-                    intersections += 1;
-                }
-            }
-            if intersections % 2 == 1 {
-                count += 1;
-            }
+}
+
+fn build_loop(grid: &Vec<Vec<char>>, start: &Position) -> Vec<Position> {
+    let max_row: i32 = grid.len() as i32;
+    let max_col: i32 = grid[0].len() as i32;
+    let max_extent: Position = Position(max_row, max_col);
+    let mut vertices: Vec<Position> = vec![];
+    let mut pos: Position = *start;
+    loop {
+        vertices.push(pos);
+        let neighbors = [
+            Position(pos.0 + 1, pos.1),
+            Position(pos.0 - 1, pos.1),
+            Position(pos.0, pos.1 + 1),
+            Position(pos.0, pos.1 - 1),
+        ]
+        .into_iter()
+        .filter(|neighbor| {
+            in_bounds(neighbor, &max_extent)
+                && connected(&pos, neighbor, grid)
+                && !vertices.contains(neighbor)
+        })
+        .collect::<Vec<Position>>();
+        if neighbors.is_empty() {
+            break;
         }
+        pos = *neighbors.first().unwrap();
     }
-    count
+    vertices
+}
+
+fn calc_interior(pipe_loop: &[Position]) -> u32 {
+    let mut vertices: Vec<Position> = pipe_loop.to_vec();
+    vertices.push(pipe_loop[0]);
+
+    // Shoelace formula
+    let mut area: i32 = 0;
+    for i in 0..(vertices.len() - 1) {
+        let first = vertices[i];
+        let second = vertices[i + 1];
+        area += (first.0 * second.1) - (first.1 * second.0);
+    }
+    area = i32::abs(area) / 2;
+
+    // Pick's theorem
+    let perimeter: i32 = vertices.len() as i32 - 1;
+    let interior: i32 = area - (perimeter / 2) + 1;
+    interior as u32
 }
 
 fn process(contents: &str) -> u32 {
     let (grid, start) = build_grid(contents);
-    let (pipe_loop, new_grid) = build_loop(&grid, &start);
-    count_interior(&pipe_loop, &new_grid)
+    let pipe_loop = build_loop(&grid, &start);
+    calc_interior(&pipe_loop)
 }
 
 fn main() {
