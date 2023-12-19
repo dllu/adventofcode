@@ -207,7 +207,6 @@ fn scan_ranges(flows: &HashMap<String, Workflow>) -> u64 {
 
 fn process(contents: &str) -> u64 {
     let flows = parse_input(contents);
-    //println!("{:?}", &flows);
     scan_ranges(&flows)
 }
 
