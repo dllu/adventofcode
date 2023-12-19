@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import math
 import sys
 
 def usage():
@@ -12,11 +13,10 @@ def calc_filled(vertices):
     for i in range(len(vertices) - 1):
         first = vertices[i]
         second = vertices[i + 1]
-        area += (first[0] * second[1]) - (first[1] * second[0])
-        if first[0] == second[0]:
-            perimeter += abs(first[1] - second[1])
-        elif first[1] == second[1]:
-            perimeter += abs(first[0] - second[0])
+        x1, y1 = first
+        x2, y2 = second
+        area += (x1 * y2) - (x2 * y1)
+        perimeter += int(math.sqrt(((x2 - x1) * (x2 -x1)) + (y2 - y1) * (y2 - y1)))
     return (abs(area) // 2) - (perimeter // 2) + 1 + perimeter
 
 def process(contents):
