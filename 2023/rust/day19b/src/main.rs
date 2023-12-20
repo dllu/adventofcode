@@ -31,7 +31,10 @@ struct Interval {
 #[derive(Clone, Debug)]
 struct State {
     label: String,
-    ranges: HashMap<String, Interval>,
+    x: Interval,
+    m: Interval,
+    a: Interval,
+    s: Interval,
 }
 
 fn usage() {
@@ -92,12 +95,10 @@ fn parse_input(contents: &str) -> HashMap<String, Workflow> {
 fn scan_ranges(flows: &HashMap<String, Workflow>) -> u64 {
     let init_state = State {
         label: String::from("in"),
-        ranges: HashMap::from([
-            (String::from("x"), Interval { from: 1, to: 4000 }),
-            (String::from("m"), Interval { from: 1, to: 4000 }),
-            (String::from("a"), Interval { from: 1, to: 4000 }),
-            (String::from("s"), Interval { from: 1, to: 4000 }),
-        ]),
+        x: Interval { from: 1, to: 4000 },
+        m: Interval { from: 1, to: 4000 },
+        a: Interval { from: 1, to: 4000 },
+        s: Interval { from: 1, to: 4000 },
     };
     let mut q: VecDeque<State> = VecDeque::new();
     let mut accepted: Vec<State> = vec![];
@@ -122,85 +123,131 @@ fn scan_ranges(flows: &HashMap<String, Workflow>) -> u64 {
                 }
                 (Predicate::LessThan(rating, amount), Action::Reject) => {
                     // split the range and continue with the non-rejected part
-                    working_state
-                        .ranges
-                        .entry(rating.clone())
-                        .and_modify(|e| e.from = *amount);
+                    match rating.as_str() {
+                        "x" => working_state.x.from = *amount,
+                        "m" => working_state.m.from = *amount,
+                        "a" => working_state.a.from = *amount,
+                        "s" => working_state.s.from = *amount,
+                        _ => unreachable!(),
+                    }
                 }
                 (Predicate::LessThan(rating, amount), Action::Accept) => {
                     // split the range, accept the less than part, continue
                     let mut accepted_state = working_state.clone();
-                    accepted_state
-                        .ranges
-                        .entry(rating.clone())
-                        .and_modify(|e| e.to = *amount - 1);
+                    match rating.as_str() {
+                        "x" => {
+                            accepted_state.x.to = *amount - 1;
+                            working_state.x.from = *amount;
+                        }
+                        "m" => {
+                            accepted_state.m.to = *amount - 1;
+                            working_state.m.from = *amount;
+                        }
+                        "a" => {
+                            accepted_state.a.to = *amount - 1;
+                            working_state.a.from = *amount;
+                        }
+                        "s" => {
+                            accepted_state.s.to = *amount - 1;
+                            working_state.s.from = *amount;
+                        }
+                        _ => unreachable!(),
+                    }
                     accepted.push(accepted_state);
-                    working_state
-                        .ranges
-                        .entry(rating.clone())
-                        .and_modify(|e| e.from = *amount);
                 }
                 (Predicate::LessThan(rating, amount), Action::Goto(label)) => {
                     //split the range, test on the less than part at the new node, continue
                     let mut goto_state = working_state.clone();
-                    goto_state
-                        .ranges
-                        .entry(rating.clone())
-                        .and_modify(|e| e.to = *amount - 1);
+                    match rating.as_str() {
+                        "x" => {
+                            goto_state.x.to = *amount - 1;
+                            working_state.x.from = *amount;
+                        }
+                        "m" => {
+                            goto_state.m.to = *amount - 1;
+                            working_state.m.from = *amount;
+                        }
+                        "a" => {
+                            goto_state.a.to = *amount - 1;
+                            working_state.a.from = *amount;
+                        }
+                        "s" => {
+                            goto_state.s.to = *amount - 1;
+                            working_state.s.from = *amount;
+                        }
+                        _ => unreachable!(),
+                    }
                     goto_state.label = label.clone();
                     q.push_back(goto_state);
-                    working_state
-                        .ranges
-                        .entry(rating.clone())
-                        .and_modify(|e| e.from = *amount);
                 }
                 (Predicate::GreaterThan(rating, amount), Action::Reject) => {
                     // split the range and continue with the non-rejected part
-                    working_state
-                        .ranges
-                        .entry(rating.clone())
-                        .and_modify(|e| e.to = *amount);
+                    match rating.as_str() {
+                        "x" => working_state.x.to = *amount,
+                        "m" => working_state.m.to = *amount,
+                        "a" => working_state.a.to = *amount,
+                        "s" => working_state.s.to = *amount,
+                        _ => unreachable!(),
+                    }
                 }
                 (Predicate::GreaterThan(rating, amount), Action::Accept) => {
                     // split the range, accept the greater than part, continue
                     let mut accepted_state = working_state.clone();
-                    accepted_state
-                        .ranges
-                        .entry(rating.clone())
-                        .and_modify(|e| e.from = *amount + 1);
+                    match rating.as_str() {
+                        "x" => {
+                            accepted_state.x.from = *amount + 1;
+                            working_state.x.to = *amount;
+                        }
+                        "m" => {
+                            accepted_state.m.from = *amount + 1;
+                            working_state.m.to = *amount;
+                        }
+                        "a" => {
+                            accepted_state.a.from = *amount + 1;
+                            working_state.a.to = *amount;
+                        }
+                        "s" => {
+                            accepted_state.s.from = *amount + 1;
+                            working_state.s.to = *amount;
+                        }
+                        _ => unreachable!(),
+                    }
                     accepted.push(accepted_state);
-                    working_state
-                        .ranges
-                        .entry(rating.clone())
-                        .and_modify(|e| e.to = *amount);
                 }
                 (Predicate::GreaterThan(rating, amount), Action::Goto(label)) => {
                     // split the range, test on the greater than part at the new node, continue
                     let mut goto_state = working_state.clone();
-                    goto_state
-                        .ranges
-                        .entry(rating.clone())
-                        .and_modify(|e| e.from = *amount + 1);
+                    match rating.as_str() {
+                        "x" => {
+                            goto_state.x.from = *amount + 1;
+                            working_state.x.to = *amount;
+                        }
+                        "m" => {
+                            goto_state.m.from = *amount + 1;
+                            working_state.m.to = *amount;
+                        }
+                        "a" => {
+                            goto_state.a.from = *amount + 1;
+                            working_state.a.to = *amount;
+                        }
+                        "s" => {
+                            goto_state.s.from = *amount + 1;
+                            working_state.s.to = *amount;
+                        }
+                        _ => unreachable!(),
+                    }
                     goto_state.label = label.clone();
                     q.push_back(goto_state);
-                    working_state
-                        .ranges
-                        .entry(rating.clone())
-                        .and_modify(|e| e.to = *amount);
                 }
             }
         }
     }
     let mut result: u64 = 0;
     for state in accepted.iter() {
-        let x_range = state.ranges.get(&String::from("x")).unwrap();
-        let m_range = state.ranges.get(&String::from("m")).unwrap();
-        let a_range = state.ranges.get(&String::from("a")).unwrap();
-        let s_range = state.ranges.get(&String::from("s")).unwrap();
-        result += (x_range.to - x_range.from + 1) as u64 *
-            (m_range.to - m_range.from + 1) as u64 *
-            (a_range.to - a_range.from + 1) as u64 *
-            (s_range.to - s_range.from + 1) as u64;
+        result += (state.x.to - state.x.from + 1) as u64
+            * (state.m.to - state.m.from + 1) as u64
+            * (state.a.to - state.a.from + 1) as u64
+            * (state.s.to - state.s.from + 1) as u64;
     }
     result
 }
