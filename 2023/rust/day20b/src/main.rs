@@ -162,7 +162,13 @@ fn push_button(components: &mut HashMap<String, Component>) -> u64 {
     }
     let mut loop_count: u64 = 0;
     let mut rx_high_counts: HashMap<String, u64> = HashMap::new();
-    let rx_parent = components.iter().filter(|(_, v)| v.targets.contains(&String::from("rx"))).map(|(k, _)| k).next().unwrap().clone();
+    let rx_parent = components
+        .iter()
+        .filter(|(_, v)| v.targets.contains(&String::from("rx")))
+        .map(|(k, _)| k)
+        .next()
+        .unwrap()
+        .clone();
     let rx_num_inputs = components
         .get(&rx_parent)
         .unwrap()
