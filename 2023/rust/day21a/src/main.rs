@@ -39,13 +39,16 @@ fn build_garden(contents: &str) -> Garden {
     }
     let mut trans_rocks: HashSet<Position> = HashSet::new();
     for rock in rocks.iter() {
-        let trans_rock = Position( rock.0 - start.0, start.1 - rock.1 );
+        let trans_rock = Position(rock.0 - start.0, start.1 - rock.1);
         trans_rocks.insert(trans_rock);
     }
     rocks = trans_rocks;
     let num_rows = contents.lines().count() as i32;
     let num_cols = contents.lines().next().unwrap().chars().count() as i32;
-    let extents = (Position(-num_rows / 2, -num_cols / 2), Position(num_rows / 2, num_cols / 2));
+    let extents = (
+        Position(-num_rows / 2, -num_cols / 2),
+        Position(num_rows / 2, num_cols / 2),
+    );
     Garden {
         rocks,
         start: Position(0, 0),
@@ -54,7 +57,7 @@ fn build_garden(contents: &str) -> Garden {
 }
 
 fn in_bounds(pos: Position, extents: (Position, Position)) -> bool {
-    pos.0 >= extents.0.0 && pos.0 <= extents.1.0 && pos.1 >= extents.0.1 && pos.1 < extents.1.1
+    pos.0 >= extents.0 .0 && pos.0 <= extents.1 .0 && pos.1 >= extents.0 .1 && pos.1 < extents.1 .1
 }
 
 fn walk(garden: &Garden) -> u32 {

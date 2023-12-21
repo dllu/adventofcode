@@ -38,9 +38,10 @@ fn build_garden(contents: &str) -> Garden {
     for rock in rocks.iter() {
         for row_mul in 0..5 {
             for col_mul in 0..5 {
-                let expanded_rock =
-                    Position(rock.0 + (num_rows * row_mul as i32),
-                             rock.1 + (num_cols * col_mul as i32));
+                let expanded_rock = Position(
+                    rock.0 + (num_rows * row_mul as i32),
+                    rock.1 + (num_cols * col_mul as i32),
+                );
                 expanded_rocks.insert(expanded_rock);
             }
         }
